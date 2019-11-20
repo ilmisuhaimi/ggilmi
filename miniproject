@@ -1,0 +1,99 @@
+#include <18f452.h>
+#DEVICE ADC=10
+#use delay (clock=4000000)
+#fuses XT, NOWDT, NOPROTECT, NOBROWNOUT, PUT, NOLVP
+//#device ADC = 8 //Set ADC resolution to 8 bit
+#define ECHO	PIN_C2
+#define TRIG	PIN_C3
+#include "LCD.c"
+int moist;
+int sw;
+
+
+//==========================
+void main()
+{
+	int time, distance;
+	delay_ms(1000);                              // Boot-up delay
+	lcd_init();
+	delay_ms(1000);
+	setup_timer_1(T1_INTERNAL|T1_DIV_BY_8);     // initiating timer
+	SETUP_ADC(ADC_CLOCK_INTERNAL);
+	SETUP_ADC_PORTS(AN0);
+	SET_ADC_CHANNEL(0);
+
+	printf(lcd_putc,  "\f");					// Diplay group theme
+	lcd_gotoxy(1,1);
+	printf(lcd_putc,  " SMART FARMING");
+	lcd_gotoxy(1,2);
+	printf(lcd_putc,  " MINI PROJECT");
+	delay_ms(5000);
+
+	printf(lcd_putc,  "\f");					//Display Group name
+	lcd_gotoxy(1,1);
+	printf(lcd_putc,  "      BY");
+	lcd_gotoxy(1,2);
+	printf(lcd_putc,  "   LAKEVILLE");
+	delay_ms(5000);
+	
+	while(TRUE)
+	{
+	output_high(TRIG);                         // ping the sonar
+	delay_us(20);                            // sending 20us pulse
+	output_low(TRIG);
+	moist=READ_ADC();
+	while(!input(ECHO))                       // wait for high state of echo pin
+	{}
+	
+	set_timer1(0);                           // setting timer zero
+	
+	while(input(ECHO))                       // Wait for high state of echo pin
+	{}
+	
+	time=get_timer1();                       // Getting the time
+	distance=((time*0.034/2)*10)*0.9;            // Calculating the distance
+	//lcd_putc("\f");                            
+	//printf(lcd_putc,"%d",distance); // Putting the time on RS232 PC
+
+	sw=input (PIN_A4);						// declaring sw as Pin A4 
+	if(sw==1)								// display when sw is equal to 1
+	{
+	 
+	  //lcd_gotoxy(1,2);
+	  if ((distance<=4))					//Display when distance less than or equal to 4
+		{    printf(lcd_putc,  "\f");
+		  	 lcd_gotoxy(1,1);
+			 printf(lcd_putc,  "   DISTANCE");
+			 lcd_gotoxy(1,2);
+		     printf(lcd_putc,  "D = %d (Enough)",distance); 
+			 delay_ms(100);
+		 }
+      if ((distance>4))						//display when distance more than 4
+		{	 printf(lcd_putc,  "\f");		
+		  	 lcd_gotoxy(1,1);
+			 printf(lcd_putc,  "   DISTANCE");
+			 lcd_gotoxy(1,2);
+		     printf(lcd_putc,  "D = %d (Fill Me)",distance); 
+			 delay_ms(100);
+		 }
+	}
+	else if(sw==0)							//display when sw is equal to 0
+	{
+		printf(lcd_putc,  "\f");
+		lcd_gotoxy(1,1);
+		printf(lcd_putc,  "   MOISTNESS");
+	    lcd_gotoxy(1,2);
+		printf(lcd_putc, "Moist:%d",moist );
+	    delay_ms(100);
+	}
+
+
+//	sw=input (PIN_A4);
+//	if(sw==1)
+//{
+//	output_high(PIN_C1);
+//	delay_ms(10000);
+//	output_low(PIN_C1);
+//}
+	}
+}
